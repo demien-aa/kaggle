@@ -1,6 +1,7 @@
 import functools
 import matplotlib.pyplot as plt
 import seaborn as sns
+sns.set_style('whitegrid')
 from base import Base
 
 
@@ -47,6 +48,17 @@ class CPlot(Plot):
         # group by target since name is continuously
         self.mean_bar_by_target()
 
+    @show
+    def mean_kde(self):
+        mean = self.tdf[[self.NAME, self.TARGET]].groupby([self.NAME], as_index=False).mean()
+        sns.kdeplot(data=mean)
+
+    @show
+    def kde_map(self):
+        facet = sns.FacetGrid(self.tdf, hue=self.TARGET, aspect=4)
+        facet.map(sns.kdeplot, self.NAME ,shade=True)
+        facet.set(xlim=(0, self.tdf[self.NAME].max()))
+        facet.add_legend()
 
 class DPlot(Plot):
 
