@@ -28,33 +28,37 @@ from etl import ETL
 class Embarked(DPlot):
     NAME = 'Embarked'
 
-    @show
-    def profile(self):
-        self.count()
-        self.mean_bar()
-        self.point()
+
+class Sex(DPlot):
+    NAME = 'Sex'
+
+
+class PClass(DPlot):
+    NAME = 'Pclass'
 
 
 class Fare(CPlot):
     NAME = 'Fare'
-
-    def profile(self):
-        self.hist()
-        self.mean_bar()
+    HIST = 30
 
 
 class Age(CPlot, ETL):
     NAME = 'Age'
+    HIST = 70
 
     def __init__(self):
         super(Age, self).__init__()
         self.fill_na_by_mean()
 
-    def profile(self):
-        self.hist(70)
-        self.mean_bar_by_name()
+
+class Family(CPlot):
+    NAME = 'Family'
+    HIST = 10
 
 
-# Embarked().profile()
-# Fare().profile()
+Embarked().profile()
+Sex().profile()
+PClass().profile()
+Fare().profile()
 Age().profile()
+Family().profile()

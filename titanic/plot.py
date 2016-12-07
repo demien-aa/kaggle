@@ -30,6 +30,7 @@ class Plot(Base):
 
 
 class CPlot(Plot):
+    HIST = 70
 
     @show
     def hist(self, bins=100):
@@ -43,9 +44,20 @@ class CPlot(Plot):
         facet.add_legend()
 
     @show
+    def mean_kde_by_name(self):
+        sns.kdeplot(self.tdf[[self.NAME, self.TARGET]].groupby([self.NAME], as_index=False).mean())
+
+    @show
     def mean_bar(self):
         # group by target since name is continuously
         self.mean_bar_by_target()
+
+    def profile(self):
+        self.hist(self.HIST)
+        self.mean_bar()
+        self.kde()
+        self.mean_bar_by_name()
+        self.mean_kde_by_name()
 
 
 class DPlot(Plot):
@@ -64,3 +76,8 @@ class DPlot(Plot):
     @show
     def point(self):
         sns.pointplot(self.NAME, self.TARGET, data=self.tdf, size=4, aspect=3)
+
+    def profile(self):
+        self.count()
+        self.mean_bar()
+        self.point()
