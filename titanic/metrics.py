@@ -44,9 +44,9 @@ class Family(CPlot):
         self.tdf['Family'] = self.tdf['Parch'] + self.tdf['SibSp']
 
 
-# Embarked().profile()
-# Sex().profile()
-# PClass().profile()
-# Fare().profile()
-# Age().profile()
+Embarked().profile()
+Sex().profile()
+PClass().profile()
+Fare().profile()
+Age().profile()
 Family().profile()
