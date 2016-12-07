@@ -39,10 +39,14 @@ class Family(CPlot):
     NAME = 'Family'
     HIST = 10
 
+    def __init__(self):
+        super(Family, self).__init__()
+        self.tdf['Family'] = self.tdf['Parch'] + self.tdf['SibSp']
 
-Embarked().profile()
-Sex().profile()
-PClass().profile()
-Fare().profile()
-Age().profile()
+
+# Embarked().profile()
+# Sex().profile()
+# PClass().profile()
+# Fare().profile()
+# Age().profile()
 Family().profile()
