@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import RandomForestClassifier
@@ -43,7 +44,7 @@ _test = foo(test)
 
 lg = LogisticRegression()
 lg.fit(train_x, train_y)
-print 'lg score', lg.score(train_x, train_y)
+print('lg score', lg.score(train_x, train_y))
 
 coeff_df = pd.DataFrame(train_x.columns.delete(0))
 coeff_df.columns = ['Features']
@@ -51,8 +52,12 @@ coeff_df["Coefficient Estimate"] = pd.Series(lg.coef_[0])
 
 random_forest = RandomForestClassifier(n_estimators=100)
 random_forest.fit(train_x, train_y)
-print 'rf score', random_forest.score(train_x, train_y)
+print('rf score', random_forest.score(train_x, train_y))
 
 _text_y = random_forest.predict(_test)
-_test = test.join(pd.DataFrame(_text_y, columns=['Survived']))
-_test[['PassengerId', 'Survived']].to_csv('result/rf.csv', index=False)
+rf_test = test.join(pd.DataFrame(_text_y, columns=['Survived']))
+rf_test[['PassengerId', 'Survived']].to_csv('result/solution_1_ramdom-forest_%s.csv' % datetime.datetime.now().strftime('%Y%m%d_%H%M%S'), index=False)
+
+_text_y = lg.predict(_test)
+lg_test = test.join(pd.DataFrame(_text_y, columns=['Survived']))
+lg_test[['PassengerId', 'Survived']].to_csv('result/solution_1_lg_%s.csv' % datetime.datetime.now().strftime('%Y%m%d_%H%M%S'), index=False)

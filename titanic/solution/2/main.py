@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 import pandas as pd
 from pandas import  DataFrame
@@ -204,8 +205,8 @@ print(classification_report(Y_train, grid_search.best_estimator_.predict(X_train
 print('test data')
 print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test) ))
 
-model_file=MODEL_PATH+'model-rf.pkl'
-joblib.dump(grid_search.best_estimator_, model_file)
+# model_file=MODEL_PATH+'model-rf.pkl'
+# joblib.dump(grid_search.best_estimator_, model_file)
 
 #读取数据
 testdf=pd.read_csv(test_file)
@@ -214,4 +215,4 @@ testnp=clean_and_munge_data(testdf)
 formula_ml='HighLow~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Per_Person+Fare+Family_Size'
 y, x = dmatrices(formula_ml, data=testnp, return_type='dataframe')
 result = pd.DataFrame({'PassengerId':testdf['PassengerId'].as_matrix(), 'Survived':grid_search.best_estimator_.predict(x).astype(np.int32)})
-result.to_csv("data/advanced.csv", index=False)
+result.to_csv("result/solution_2_%s.csv" % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'), index=False)

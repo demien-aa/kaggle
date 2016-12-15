@@ -1,5 +1,3 @@
-# https://www.kaggle.com/omarelgabry/titanic/a-journey-through-titanic
-
 from etl import ETL
 from plot import CPlot, DPlot, show
 
