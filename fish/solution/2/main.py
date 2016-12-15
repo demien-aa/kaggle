@@ -1,6 +1,4 @@
-# https://www.kaggle.com/zfturbo/the-nature-conservancy-fisheries-monitoring/fishy-keras-lb-1-25267/code
-__author__ = 'ZFTurbo: https://kaggle.com/zfturbo'
-
+from common.util import submit_stamp
 import numpy as np
 np.random.seed(2016)
 
@@ -74,7 +72,7 @@ def create_submission(predictions, test_id, info):
     result1 = pd.DataFrame(predictions, columns=['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT'])
     result1.loc[:, 'image'] = pd.Series(test_id, index=result1.index)
     now = datetime.datetime.now()
-    sub_file = 'submission_' + info + '_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
+    sub_file = 'result/solution-2_%s.csv' % submit_stamp()
     result1.to_csv(sub_file, index=False)
 
 

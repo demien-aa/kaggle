@@ -1,4 +1,4 @@
-# https://www.kaggle.com/jeffd23/the-nature-conservancy-fisheries-monitoring/deep-learning-in-the-deep-blue-lb-1-279
+from common.util import submit_stamp
 import time
 import os, cv2, random, sys
 import numpy as np
@@ -129,7 +129,7 @@ def predict(model):
     submission.insert(0, 'image', test_files)
     submission.head()
 
-    submission.to_csv('data/result/keras-%s.csv' % int(time.time()), index=False)
+    submission.to_csv('result/solution-1_keras_%s.csv' % submit_stamp(), index=False)
 
 
 if __name__ == '__main__':
