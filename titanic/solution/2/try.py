@@ -3,18 +3,21 @@ import numpy as np
 import pandas as pd
 import re
 import string
+import warnings
 
-from common.util import submit_stamp
+from common.util import submit_stamp, red, green, white, blue, single_line
 from operator import itemgetter
 from pandas import DataFrame
 from patsy import dmatrices
 from sklearn import preprocessing
-from sklearn.cross_validation import cross_val_score, train_test_split, StratifiedShuffleSplit, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.externals import joblib
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
+
+
+warnings.filterwarnings('ignore')
 
 
 train_file = "data/train.csv"
@@ -23,14 +26,16 @@ seed = 0
 
 
 def main():
-    # The main workflow, entry point
-
-    # Clean and feature engineering
+    '''
+    The main workflow, entry point
+    '''
     train_df = clean(pd.read_csv(train_file))
-
+    estimator = grid_search(train_df)
+    predict(estimator, True)
 
 
 def clean(df):
+    print(white(single_line('Clean Data Frame')))
     df = embarked(df)
     df = gender(df)
     df = family(df)
@@ -42,12 +47,14 @@ def clean(df):
     df = dummy(df, 'Title')
     df = dummy(df, 'AgeClass')
     df = df.drop(['PassengerId', 'Name', 'Age', 'Cabin', 'Sex', 'Ticket'], axis=1)
+    print(blue('Finish Clean'))
     return df
 
 
 def dummy(df, name):
     df = pd.concat([df, pd.get_dummies(df[name], prefix=name)], axis=1)
     return df.drop(name, axis=1)
+
 
 def age_by_rf(df):
     new_df = pd.concat([df, pd.get_dummies(df.Title, prefix='Title')], axis=1)
@@ -109,7 +116,7 @@ def title(df):
             elif title in ['Mlle', 'Ms','Miss']: # Young women
                 return 'Miss'
             else: # Others check gender
-                print('Unknown title %s' % title)
+                print(red('Unknown title %s' % title))
                 if row['Sex'] == 'Male':
                     return 'Mr'
                 else:
@@ -131,146 +138,47 @@ def age_class(df):
     return df
 
 
+def rfc():
+    return RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5, min_samples_split=2, min_samples_leaf=1, max_features='auto', bootstrap=False, oob_score=False, n_jobs=1, random_state=seed, verbose=0)
+
+
+def lgr():
+    return LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
+
+
+def grid_search(df):
+    print(white(single_line('Train Grid Search')))
+    # grid seach and find the best estimator
+    x = df.drop('Survived', axis=1)
+    y = df.Survived
+    pipeline = make_pipeline(rfc(), lgr())
+    grid_search = grid_search = GridSearchCV(pipeline, param_grid={}, verbose=3, cv=30, scoring='accuracy').fit(x, y)
+    print(green('Best score: %0.3f' % grid_search.best_score_))
+    grid_search_report(grid_search.grid_scores_)
+    print('Best estimator: ', grid_search.best_estimator_)
+    print(blue('Finish Grid Search'))
+    return grid_search.best_estimator_
+
+
+def predict(estimator, csv=False):
+    print(white(single_line('Predict Test Data Set')))
+    test_raw = pd.read_csv(test_file)
+    test_df = clean(test_raw)
+    survived = estimator.predict(test_df).astype(np.int32)
+    result = pd.DataFrame({'PassengerId': test_raw['PassengerId'].as_matrix(), 'Survived': survived})
+    if csv:
+        print(blue('Save CSV'))
+        result.to_csv('result/solution-2_%s.csv' % submit_stamp(), index=False)
+    print(blue('Finish Predict'))
+
+
+def grid_search_report(grid_scores, n_top=3):
+    top_scores = sorted(grid_scores, key=itemgetter(1), reverse=True)[:n_top]
+    for i, score in enumerate(top_scores):
+        print('Mean validation score: {0:.3f} (std: {1:.3f})'.format(
+              score.mean_validation_score,
+              np.std(score.cv_validation_scores)))
+
+
 if __name__ == '__main__':
     main()
-
-##Read configuration parameters
-
-
-
-# print(train_file,seed)
-
-# # 输出得分
-# def report(grid_scores, n_top=3):
-#     top_scores = sorted(grid_scores, key=itemgetter(1), reverse=True)[:n_top]
-#     for i, score in enumerate(top_scores):
-#         print('Model with rank: {0}'.format(i + 1))
-#         print('Mean validation score: {0:.3f} (std: {1:.3f})'.format(
-#               score.mean_validation_score,
-#               np.std(score.cv_validation_scores)))
-#         print('Parameters: {0}'.format(score.parameters))
-
-# #清理和处理数据
-# def substrings_in_string(big_string, substrings):
-#     for substring in substrings:
-#         if big_string.find(substring) != -1:
-#             return substring
-#     print(big_string)
-#     return np.nan
-
-
-
-
-def clean_and_munge_data(df):
-
-
-    # df['AgeFill']=df['Age']
-    # mean_ages = np.zeros(4)
-    # mean_ages[0]=np.average(df[df['Title'] == 'Miss']['Age'].dropna())
-    # mean_ages[1]=np.average(df[df['Title'] == 'Mrs']['Age'].dropna())
-    # mean_ages[2]=np.average(df[df['Title'] == 'Mr']['Age'].dropna())
-    # mean_ages[3]=np.average(df[df['Title'] == 'Master']['Age'].dropna())
-    # df.loc[ (df.Age.isnull()) & (df.Title == 'Miss') ,'AgeFill'] = mean_ages[0]
-    # df.loc[ (df.Age.isnull()) & (df.Title == 'Mrs') ,'AgeFill'] = mean_ages[1]
-    # df.loc[ (df.Age.isnull()) & (df.Title == 'Mr') ,'AgeFill'] = mean_ages[2]
-    # df.loc[ (df.Age.isnull()) & (df.Title == 'Master') ,'AgeFill'] = mean_ages[3]
-
-
-
-    df['Fare_Per_Person']=df['Fare']/(df['Family_Size']+1)
-
-    #Age times class
-
-    df['AgeClass']=df['AgeFill']*df['Pclass']
-    df['ClassFare']=df['Pclass']*df['Fare_Per_Person']
-
-
-    df['HighLow']=df['Pclass']
-    df.loc[ (df.Fare_Per_Person<8) ,'HighLow'] = 'Low'
-    df.loc[ (df.Fare_Per_Person>=8) ,'HighLow'] = 'High'
-
-
-
-    le.fit(df['Sex'] )
-    x_sex=le.transform(df['Sex'])
-    df['Sex']=x_sex.astype(np.float)
-
-    le.fit( df['Ticket'])
-    x_Ticket=le.transform( df['Ticket'])
-    df['Ticket']=x_Ticket.astype(np.float)
-
-    le.fit(df['Title'])
-    x_title=le.transform(df['Title'])
-    df['Title'] =x_title.astype(np.float)
-
-    le.fit(df['HighLow'])
-    x_hl=le.transform(df['HighLow'])
-    df['HighLow']=x_hl.astype(np.float)
-
-
-    le.fit(df['AgeCat'])
-    x_age=le.transform(df['AgeCat'])
-    df['AgeCat'] =x_age.astype(np.float)
-
-    le.fit(df['Embarked'])
-    x_emb=le.transform(df['Embarked'])
-    df['Embarked']=x_emb.astype(np.float)
-
-    df = df.drop(['PassengerId','Name','Age','Cabin'], axis=1) #remove Name,Age and PassengerId
-
-
-    return df
-
-# #读取数据
-# traindf=pd.read_csv(train_file)
-# ##清洗数据
-# df=clean_and_munge_data(traindf)
-# ########################################formula################################
-# # import ipdb; ipdb.set_trace() 
-# formula_ml='Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Per_Person+Fare+Family_Size' 
-# # import ipdb; ipdb.set_trace()
-# y_train, x_train = dmatrices(formula_ml, data=df, return_type='dataframe')
-# y_train = np.asarray(y_train).ravel()
-# print(y_train.shape,x_train.shape)
-
-# ##选择训练和测试集
-# X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train, test_size=0.2,random_state=seed)
-# #初始化分类器
-# clf=RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5, min_samples_split=2,
-#   min_samples_leaf=1, max_features='auto',    bootstrap=False, oob_score=False, n_jobs=1, random_state=seed,
-#   verbose=0)
-
-# ###grid search找到最好的参数
-# param_grid = dict( )
-# ##创建分类pipeline
-# pipeline=Pipeline([ ('clf',clf) ])
-# # grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=3,scoring='accuracy',cv=StratifiedShuffleSplit(Y_train, n_iter=10, test_size=0.2, train_size=None, indices=None, random_state=seed, n_iterations=None)).fit(X_train, Y_train)
-# grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=3, cv=3, scoring='accuracy').fit(X_train, Y_train)
-# # 对结果打分
-# print('Best score: %0.3f' % grid_search.best_score_)
-# print(grid_search.best_estimator_)
-# report(grid_search.grid_scores_)
- 
-# print('-----grid search end------------')
-# print ('on all train set')
-# scores = cross_val_score(grid_search.best_estimator_, x_train, y_train,cv=3,scoring='accuracy')
-# print(scores.mean(),scores)
-# print ('on test set')
-# scores = cross_val_score(grid_search.best_estimator_, X_test, Y_test,cv=3,scoring='accuracy')
-# print(scores.mean(),scores)
-
-# # 对结果打分
-
-# print(classification_report(Y_train, grid_search.best_estimator_.predict(X_train) ))
-# print('test data')
-# print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test) ))
-
-
-# #读取数据
-# testdf=pd.read_csv(test_file)
-# ##清洗数据
-# testnp=clean_and_munge_data(testdf)
-# formula_ml='HighLow~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Per_Person+Fare+Family_Size'
-# y, x = dmatrices(formula_ml, data=testnp, return_type='dataframe')
-# result = pd.DataFrame({'PassengerId':testdf['PassengerId'].as_matrix(), 'Survived':grid_search.best_estimator_.predict(x).astype(np.int32)})
-# result.to_csv('result/solution_2_%s.csv' % submit_stamp(), index=False)
