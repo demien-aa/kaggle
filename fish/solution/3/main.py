@@ -3,6 +3,7 @@ import glob
 import numpy as np
 import os
 import warnings
+warnings.filterwarnings("ignore")
 
 from common.util import submit_stamp, red, green, white, blue, single_line, picklable, print_header_footer
 from keras import backend as K
@@ -17,13 +18,13 @@ from sklearn.cross_validation import KFold
 from sklearn.metrics import log_loss
 from sklearn.preprocessing import LabelEncoder
 
-warnings.filterwarnings("ignore")
 
 FISH_CLASSES = ['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT']
-WIDTH = 160
-HEIGHT = 90
+WIDTH = 32
+HEIGHT = 32
 RESIZE = (WIDTH, HEIGHT)  # Most train images are 1280 * 720
 CHANNELS = 3 # RGB
+RELOAD = True
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
 
 
 @print_header_footer('Load Training Images')
-@picklable(__file__, reload=False)
+@picklable(__file__, reload=False or RELOAD)
 def load_training_images():
     x_all, y_all = [], []
     for fish in FISH_CLASSES:
@@ -43,7 +44,7 @@ def load_training_images():
         for image_path in image_pathes:
             x_all.append(read_image_cv(image_path))
 
-    x_all = np.array(x_all)
+    x_all = np.array(x_all) / 256
     y_all = np.array(y_all)
 
     y_all = LabelEncoder().fit_transform(y_all)
@@ -52,7 +53,7 @@ def load_training_images():
 
 
 @print_header_footer('Load Test Images')
-@picklable(__file__, reload=False)
+@picklable(__file__, reload=False or RELOAD)
 def load_test_images():
     y_all, image_names = [], []
     fold_path = os.path.join('data', 'test_stg1', '*.jpg')
@@ -60,14 +61,14 @@ def load_test_images():
     for image_path in image_pathes:
         y_all.append(read_image_cv(image_path))
         image_names.append(os.path.basename(image_path))
-    return np.array(y_all), image_names
+    return np.array(y_all) / 256, image_names
 
 
 @print_header_footer('Create Model by Croos Validation')
-def cross_validation_create_models(x_all, y_all, n_folds=5):
+def cross_validation_create_models(x_all, y_all, n_folds=10):
     random_state = 51
-    batch_size = 10
-    nb_epoch = 15
+    batch_size = 16
+    nb_epoch = 30
     num_fold = 0
     sum_score = 0
     models = []
@@ -83,11 +84,10 @@ def cross_validation_create_models(x_all, y_all, n_folds=5):
         print(blue('Start KFold number %s from %s' % (num_fold, n_folds)))
         callbacks = [EarlyStopping(monitor='val_loss', patience=3, verbose=0), ]
         model = create_model()
-        model.fit(x_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, shuffle=True, verbose=2)
-        # model.fit(x_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, shuffle=True, verbose=2, callbacks=callbacks)
-        predictions_valid = model.predict(x_validation, batch_size=batch_size, verbose=2)
+        model.fit(x_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, shuffle=True, verbose=1, validation_data=(x_validation, y_validation), callbacks=callbacks)
+        predictions_valid = model.predict(x_validation, batch_size=batch_size, verbose=1)
         score = log_loss(y_validation, predictions_valid)
-        print(green("Validation Log Loss: %s" % score))
+        print(green("\nValidation Log Loss: %s" % score))
         models.append(model)
         sum_score += score * len(validation_index)
 
@@ -118,7 +118,7 @@ def cross_validation_predict_test(models):
 def create_submission(predictions, test_id):
     result = pd.DataFrame(predictions, columns=['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT'])
     result.loc[:, 'image'] = pd.Series(test_id, index=result.index)
-    sub_file = 'result/solution-2_%s.csv' % submit_stamp()
+    sub_file = 'result/solution-3_%s.csv' % submit_stamp()
     result.to_csv(sub_file, index=False)
 
 

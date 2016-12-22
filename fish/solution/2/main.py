@@ -1,4 +1,4 @@
-from common.util import submit_stamp
+from common.util import submit_stamp, picklable, print_header_footer, green
 import numpy as np
 np.random.seed(2016)
 
@@ -20,7 +20,6 @@ from keras.callbacks import EarlyStopping
 from keras.utils import np_utils
 from sklearn.metrics import log_loss
 from keras import __version__ as keras_version
-
 
 
 def get_im_cv2(path):
@@ -76,6 +75,7 @@ def create_submission(predictions, test_id, info):
     result1.to_csv(sub_file, index=False)
 
 
+@picklable(__file__, reload=False)
 def read_and_normalize_train_data():
     train_data, train_target, train_id = load_train()
 
@@ -96,6 +96,7 @@ def read_and_normalize_train_data():
     return train_data, train_target, train_id
 
 
+@picklable(__file__, reload=False)
 def read_and_normalize_test_data():
     start_time = time.time()
     test_data, test_id = load_test()
@@ -160,7 +161,7 @@ def get_validation_predictions(train_data, predictions_valid):
         pv.append(predictions_valid[i])
     return pv
 
-
+@print_header_footer('Train Model by Cross Validation')
 def run_cross_validation_create_models(nfolds=10):
     # input image dimensions
     batch_size = 16
@@ -190,10 +191,10 @@ def run_cross_validation_create_models(nfolds=10):
             EarlyStopping(monitor='val_loss', patience=3, verbose=0),
         ]
         model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-              shuffle=True, verbose=2, validation_data=(X_valid, Y_valid),
+              shuffle=True, verbose=1, validation_data=(X_valid, Y_valid),
               callbacks=callbacks)
 
-        predictions_valid = model.predict(X_valid.astype('float32'), batch_size=batch_size, verbose=2)
+        predictions_valid = model.predict(X_valid.astype('float32'), batch_size=batch_size, verbose=1)
         score = log_loss(Y_valid, predictions_valid)
         print('Score log_loss: ', score)
         sum_score += score*len(test_index)
@@ -210,7 +211,7 @@ def run_cross_validation_create_models(nfolds=10):
     info_string = 'loss_' + str(score) + '_folds_' + str(nfolds) + '_ep_' + str(nb_epoch)
     return info_string, models
 
-
+@print_header_footer('Predict by Cross Validation')
 def run_cross_validation_process_test(info_string, models):
     batch_size = 16
     num_fold = 0
@@ -234,6 +235,6 @@ def run_cross_validation_process_test(info_string, models):
 
 if __name__ == '__main__':
     print('Keras version: {}'.format(keras_version))
-    num_folds = 3
+    num_folds = 10
     info_string, models = run_cross_validation_create_models(num_folds)
     run_cross_validation_process_test(info_string, models)
