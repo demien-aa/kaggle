@@ -20,11 +20,11 @@ from sklearn.preprocessing import LabelEncoder
 
 
 FISH_CLASSES = ['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT']
-WIDTH = 32
-HEIGHT = 32
+WIDTH = 64
+HEIGHT = 64
 RESIZE = (WIDTH, HEIGHT)  # Most train images are 1280 * 720
 CHANNELS = 3 # RGB
-RELOAD = True
+RELOAD = False
 
 
 def main():
@@ -65,15 +65,15 @@ def load_test_images():
 
 
 @print_header_footer('Create Model by Croos Validation')
-def cross_validation_create_models(x_all, y_all, n_folds=10):
-    random_state = 51
+def cross_validation_create_models(x_all, y_all, n_folds=3):
+    random_state = 41
     batch_size = 16
-    nb_epoch = 30
+    nb_epoch = 10
     num_fold = 0
     sum_score = 0
     models = []
 
-    k = KFold(len(y_all), n_folds=n_folds, shuffle=True, random_state=random_state)
+    k = KFold(len(y_all), n_folds=n_folds, shuffle=True)
     for train_index, validation_index in k:
         num_fold += 1
         x_train = x_all[train_index]
@@ -82,7 +82,7 @@ def cross_validation_create_models(x_all, y_all, n_folds=10):
         y_validation = y_all[validation_index]
 
         print(blue('Start KFold number %s from %s' % (num_fold, n_folds)))
-        callbacks = [EarlyStopping(monitor='val_loss', patience=3, verbose=0), ]
+        callbacks = [EarlyStopping(monitor='val_loss', patience=5, verbose=0), ]
         model = create_model()
         model.fit(x_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, shuffle=True, verbose=1, validation_data=(x_validation, y_validation), callbacks=callbacks)
         predictions_valid = model.predict(x_validation, batch_size=batch_size, verbose=1)
@@ -156,7 +156,7 @@ def create_model():
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), dim_ordering='tf'))
 
     model.add(Flatten())
-    model.add(Dense(32, activation='relu'))
+    model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(32, activation='relu'))
     model.add(Dropout(0.5))
